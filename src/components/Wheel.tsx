@@ -250,8 +250,8 @@ export default function Wheel({ people, onPersonSelected, isSpinning, setIsSpinn
         <div className="wheel-pointer">▼</div>
         <svg
           className={`wheel ${isSpinning ? 'spinning' : ''} ${isFineTuning ? 'fine-tuning' : ''}`}
-          width="300"
-          height="300"
+          width="400"
+          height="400"
           viewBox="0 0 300 300"
           style={{ transform: `rotate(${rotation}deg)` }}
         >
