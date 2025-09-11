@@ -65,7 +65,6 @@ export default function Wheel({ people, onPersonSelected, isSpinning, setIsSpinn
     setTimeout(() => {
       clearInterval(interval);
       setIsSpinning(false);
-      setHighlightedSector(-1);
       
       // Определяем, какой сектор находится под стрелкой wheel-pointer
       // Стрелка указывает строго вверх (12 часов, позиция -90° в SVG координатах)
@@ -103,40 +102,135 @@ export default function Wheel({ people, onPersonSelected, isSpinning, setIsSpinn
       // Находим соответствующего участника под стрелкой
       const selectedPerson = people[sectorIndex];
       
+      // Подсвечиваем сектор под стрелкой
+      setHighlightedSector(sectorIndex);
+      
+      console.log('🔍 ПОЛНАЯ ПРОВЕРКА участника под стрелкой:', {
+        selectedPerson: selectedPerson?.name,
+        isSelected: selectedPerson?.isSelected,
+        sectorIndex,
+        shouldLookForAnother: !selectedPerson || selectedPerson.isSelected,
+        allPeople: people.map((p, i) => ({ index: i, name: p.name, isSelected: p.isSelected }))
+      });
+      
       // Если участник под стрелкой уже выбран, ищем первого доступного
       let finalSelectedPerson: Person | undefined = selectedPerson;
+      let needsSpinToAvailable = false;
+      
       if (!selectedPerson || selectedPerson.isSelected) {
-        // Ищем первого доступного участника, начиная с текущей позиции
-        const availableFromCurrent = people.slice(sectorIndex).find(p => !p.isSelected);
-        const availableFromStart = people.slice(0, sectorIndex).find(p => !p.isSelected);
-        finalSelectedPerson = availableFromCurrent || availableFromStart;
+        console.log('🚨 УЧАСТНИК ПОД СТРЕЛКОЙ УЖЕ ВЫБРАН! Ищем доступного...');
+        console.log('Причина:', {
+          noSelectedPerson: !selectedPerson,
+          isAlreadySelected: selectedPerson?.isSelected,
+          personDetails: selectedPerson
+        });
+        needsSpinToAvailable = true;
+        
+        // Найдем первого доступного участника, двигаясь против часовой стрелки
+        let targetIndex = -1;
+        
+        // Проходим по кругу назад (против часовой) от текущей позиции
+        console.log(`🔍 НАЧИНАЕМ ПОИСК с индекса ${sectorIndex}, всего участников: ${people.length}`);
+        for (let i = 1; i < people.length; i++) {
+          const checkIndex = (sectorIndex - i + people.length) % people.length;
+          const checkPerson = people[checkIndex];
+          console.log(`Шаг ${i}: Проверяем индекс ${checkIndex}: ${checkPerson?.name}, выбран: ${checkPerson?.isSelected}`);
+          
+          if (checkPerson && !checkPerson.isSelected) {
+            targetIndex = checkIndex;
+            finalSelectedPerson = checkPerson;
+            console.log(`✅ НАЙДЕН ПЕРВЫЙ ДОСТУПНЫЙ: ${finalSelectedPerson.name} (индекс ${targetIndex})`);
+            console.log(`Пройдено шагов назад: ${i}, это ${i} сектор(ов) против часовой стрелки`);
+            break;
+          }
+        }
+        
+        if (targetIndex === -1) {
+          console.log('❌ НЕ НАЙДЕНО ДОСТУПНЫХ УЧАСТНИКОВ');
+        }
       }
       
-      // Если есть доступный участник
-      if (finalSelectedPerson && !finalSelectedPerson.isSelected) {
-        // Если это не тот, кто под стрелкой, докручиваем до него
-        if (finalSelectedPerson.id !== selectedPerson?.id) {
+      // Принимаем решение что делать дальше
+      console.log('🎯 ПРИНИМАЕМ РЕШЕНИЕ:', {
+        needsSpinToAvailable,
+        hasFinalSelectedPerson: !!finalSelectedPerson,
+        finalPersonName: finalSelectedPerson?.name,
+        finalPersonIsSelected: finalSelectedPerson?.isSelected,
+        willSpin: needsSpinToAvailable && finalSelectedPerson && !finalSelectedPerson.isSelected
+      });
+      
+      if (needsSpinToAvailable && finalSelectedPerson && !finalSelectedPerson.isSelected) {
+        console.log('🔄 НАЧИНАЕМ ДОКРУТКУ к доступному участнику:', finalSelectedPerson.name);
+        
+        // Докручиваем до доступного участника
+        setTimeout(() => {
           const targetIndex = people.findIndex(p => p.id === finalSelectedPerson.id);
-          const targetSectorCenter = -90 + targetIndex * sectorAngle + (sectorAngle / 2);
-          const additionalRotation = -targetSectorCenter - finalRotationValue;
           
-          // Включаем режим fine-tuning для более короткой анимации
+          console.log('Данные для докрутки:', {
+            currentIndex: sectorIndex,
+            targetIndex,
+            currentSectorAngle: sectorIndex * sectorAngle,
+            targetSectorAngle: targetIndex * sectorAngle
+          });
+          
+          // Правильная логика: вычисляем точное количество секторов до найденного доступного
+          // targetIndex уже найден в цикле поиска, это ДЕЙСТВИТЕЛЬНО первый доступный
+          
+          // Считаем сколько шагов назад (против часовой) от текущего сектора до целевого
+          let stepsBack;
+          if (targetIndex < sectorIndex) {
+            stepsBack = sectorIndex - targetIndex;
+          } else {
+            // Если целевой "впереди" по индексу, значит мы идем через конец массива
+            stepsBack = sectorIndex + (people.length - targetIndex);
+          }
+          
+          // Переводим в градусы (положительное число = движение по часовой стрелке)
+          const rotationNeeded = stepsBack * sectorAngle;
+          
+          console.log('🔧 ДОКРУТКА:', {
+            currentIndex: sectorIndex,
+            targetIndex,
+            stepsBack,
+            rotationNeeded,
+            targetPersonName: finalSelectedPerson?.name
+          });
+          
+          // Включаем режим fine-tuning
           setIsFineTuning(true);
           
-          // Плавно докручиваем до нужного участника
-          setRotation(prev => prev + additionalRotation);
+          // Плавно докручиваем барабан
+          setRotation(prev => {
+            console.log('🎲 Поворачиваем барабан на', rotationNeeded, 'градусов');
+            return prev + rotationNeeded;
+          });
+          
+          // Обновляем подсветку на целевой сектор
+          setHighlightedSector(targetIndex);
           
           // Ждем окончания докрутки и выбираем участника
           setTimeout(() => {
+            console.log('✅ ДОКРУТКА ЗАВЕРШЕНА, выбираем:', finalSelectedPerson.name);
             setIsFineTuning(false);
+            setHighlightedSector(-1);
             onPersonSelected(finalSelectedPerson.id);
-          }, 1000);
-        } else {
-          // Участник под стрелкой доступен, выбираем его
-          setTimeout(() => {
-            onPersonSelected(finalSelectedPerson.id);
-          }, 200);
-        }
+          }, 1500);
+        }, 1000);
+        
+      } else if (finalSelectedPerson && !finalSelectedPerson.isSelected) {
+        // Участник под стрелкой доступен, выбираем его
+        console.log('✅ Участник под стрелкой доступен, выбираем сразу:', finalSelectedPerson.name);
+        setTimeout(() => {
+          setHighlightedSector(-1);
+          onPersonSelected(finalSelectedPerson.id);
+        }, 1000);
+        
+      } else {
+        // Нет доступных участников
+        console.log('❌ НЕТ ДОСТУПНЫХ УЧАСТНИКОВ');
+        setTimeout(() => {
+          setHighlightedSector(-1);
+        }, 1000);
       }
     }, 4000);
   };
