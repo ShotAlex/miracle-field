@@ -6,6 +6,7 @@ import Footer from '../components/Footer';
 import Wheel from '../components/Wheel';
 import NamesList from '../components/NamesList';
 import NameInput from '../components/NameInput';
+import Confetti from '../components/Confetti';
 
 interface Person {
   id: string;
@@ -18,6 +19,7 @@ export default function Home() {
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
   const [justSelectedId, setJustSelectedId] = useState<string | null>(null);
   const [isSpinning, setIsSpinning] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
 
   // Загрузка данных из localStorage при монтировании компонента
   useEffect(() => {
@@ -67,6 +69,9 @@ export default function Home() {
     // Сначала показываем зеленую подсветку (только что выбранного)
     setJustSelectedId(personId);
     setSelectedPersonId(personId);
+    
+    // Запускаем конфетти! 🎊
+    setShowConfetti(true);
     
     // Через 2 секунды убираем зеленую подсветку, делаем участника неактивным, но оставляем синюю подсветку
     setTimeout(() => {
@@ -156,6 +161,11 @@ export default function Home() {
       </main>
       
       <Footer />
+      
+      <Confetti 
+        isActive={showConfetti} 
+        onComplete={() => setShowConfetti(false)}
+      />
     </div>
   );
 }
