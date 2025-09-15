@@ -81,10 +81,10 @@ export default function Wheel({ people, onPersonSelected, isSpinning, setIsSpinn
       // Какой сектор сейчас в позиции -90°?
       // Это сектор, который изначально был в позиции (-90° - finalAngle)
       // Приводим к положительному углу и находим соответствующий сектор
-      let targetAngle = (-90 - finalAngle + 360) % 360;
+      const targetAngle = (-90 - finalAngle + 360) % 360;
       
       // Переводим угол в индекс сектора (сектора начинаются с -90°, т.е. нужно добавить 90°)
-      let normalizedAngle = (targetAngle + 90) % 360;
+      const normalizedAngle = (targetAngle + 90) % 360;
       const sectorIndex = Math.floor(normalizedAngle / sectorAngle) % totalSectors;
       
       // Отладочная информация (можно убрать потом)
