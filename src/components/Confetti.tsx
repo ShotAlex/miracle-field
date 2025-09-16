@@ -4,11 +4,19 @@ import { useEffect, useState } from 'react';
 
 interface ConfettiProps {
   isActive: boolean;
-  onComplete?: () => void;
+  onComplete: () => void;
+}
+
+interface ConfettiPiece {
+  id: number;
+  left: number;
+  color: string;
+  delay: number;
+  size: number;
 }
 
 export default function Confetti({ isActive, onComplete }: ConfettiProps) {
-  const [pieces, setPieces] = useState<number[]>([]);
+  const [pieces, setPieces] = useState<ConfettiPiece[]>([]);
 
   useEffect(() => {
     if (!isActive) {
@@ -16,30 +24,45 @@ export default function Confetti({ isActive, onComplete }: ConfettiProps) {
       return;
     }
 
-    // Создаем конфетти один раз
-    setPieces(Array.from({ length: 100 }, (_, i) => i));
+    // Создаем конфетти только при активации
+    const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
+    const newPieces: ConfettiPiece[] = [];
 
-    // Завершаем через 4 секунды
-    const timeout = setTimeout(() => {
+    for (let i = 0; i < 100; i++) {
+      newPieces.push({
+        id: i,
+        left: Math.random() * 100,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        delay: Math.random() * 1000,
+        size: Math.random() * 6 + 4,
+      });
+    }
+
+    setPieces(newPieces);
+
+    // Через 4 секунды завершаем анимацию
+    const timer = setTimeout(() => {
       setPieces([]);
-      onComplete?.();
+      onComplete();
     }, 4000);
 
-    return () => clearTimeout(timeout);
+    return () => clearTimeout(timer);
   }, [isActive, onComplete]);
 
-  if (!isActive || pieces.length === 0) return null;
+  if (pieces.length === 0) return null;
 
   return (
     <div className="confetti-container">
-      {pieces.map((id) => (
+      {pieces.map((piece) => (
         <div
-          key={id}
+          key={piece.id}
           className="confetti-piece"
           style={{
-            left: `${Math.random() * 100}%`,
-            animationDelay: `${Math.random() * 3}s`,
-            backgroundColor: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD'][Math.floor(Math.random() * 6)]
+            left: `${piece.left}%`,
+            backgroundColor: piece.color,
+            width: `${piece.size}px`,
+            height: `${piece.size}px`,
+            animationDelay: `${piece.delay}ms`,
           }}
         />
       ))}

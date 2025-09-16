@@ -7,6 +7,7 @@ import Wheel from '../components/Wheel';
 import NamesList from '../components/NamesList';
 import NameInput from '../components/NameInput';
 import Confetti from '../components/Confetti';
+import EffectsControl from '../components/EffectsControl';
 
 interface Person {
   id: string;
@@ -20,6 +21,8 @@ export default function Home() {
   const [justSelectedId, setJustSelectedId] = useState<string | null>(null);
   const [isSpinning, setIsSpinning] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [confettiEnabled, setConfettiEnabled] = useState(true);
+  const [effectsEnabled, setEffectsEnabled] = useState(true);
 
   // Загрузка данных из localStorage при монтировании компонента
   useEffect(() => {
@@ -31,6 +34,17 @@ export default function Home() {
       } catch (error) {
         console.error('Ошибка при загрузке данных из localStorage:', error);
       }
+    }
+
+    // Загружаем настройки эффектов
+    const savedConfettiEnabled = localStorage.getItem('miracle-field-confetti-enabled');
+    const savedEffectsEnabled = localStorage.getItem('miracle-field-effects-enabled');
+    
+    if (savedConfettiEnabled !== null) {
+      setConfettiEnabled(JSON.parse(savedConfettiEnabled));
+    }
+    if (savedEffectsEnabled !== null) {
+      setEffectsEnabled(JSON.parse(savedEffectsEnabled));
     }
   }, []);
 
@@ -70,8 +84,10 @@ export default function Home() {
     setJustSelectedId(personId);
     setSelectedPersonId(personId);
     
-    // Запускаем конфетти! 🎊
-    setShowConfetti(true);
+    // Запускаем конфетти только если включено! 🎊
+    if (confettiEnabled) {
+      setShowConfetti(true);
+    }
     
     // Через 2 секунды убираем зеленую подсветку, делаем участника неактивным, но оставляем синюю подсветку
     setTimeout(() => {
@@ -108,8 +124,18 @@ export default function Home() {
     }
   };
 
+  const handleConfettiToggle = (enabled: boolean) => {
+    setConfettiEnabled(enabled);
+    localStorage.setItem('miracle-field-confetti-enabled', JSON.stringify(enabled));
+  };
+
+  const handleEffectsToggle = (enabled: boolean) => {
+    setEffectsEnabled(enabled);
+    localStorage.setItem('miracle-field-effects-enabled', JSON.stringify(enabled));
+  };
+
   return (
-    <div className="app">
+    <div className={`app ${!effectsEnabled ? 'effects-disabled' : ''}`}>
       <Header />
       
       <main className="main">
@@ -123,6 +149,7 @@ export default function Home() {
                 setIsSpinning={setIsSpinning}
                 onSpinStart={handleSpinStart}
                 selectedPersonId={selectedPersonId}
+                effectsEnabled={effectsEnabled}
               />
             </div>
             
@@ -163,8 +190,15 @@ export default function Home() {
       <Footer />
       
       <Confetti 
-        isActive={showConfetti} 
+        isActive={showConfetti && confettiEnabled} 
         onComplete={() => setShowConfetti(false)}
+      />
+      
+      <EffectsControl 
+        confettiEnabled={confettiEnabled}
+        effectsEnabled={effectsEnabled}
+        onConfettiToggle={handleConfettiToggle}
+        onEffectsToggle={handleEffectsToggle}
       />
     </div>
   );
